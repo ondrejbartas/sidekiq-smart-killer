@@ -56,9 +56,6 @@
             <% if process.stopping? %>
               <span class="label label-danger">quiet</span>
             <% end %>
-            <br>
-            <b><%= "#{t('Queues')}: " %></b>
-            <%= process['queues'] * ", " %>
           </td>
           <td><%= relative_time(Time.at(process['started_at'])) %></td>
           <% if hostname_processes[process.identity] %>
