@@ -34,6 +34,7 @@
 <% Sidekiq::SmartKiller::History.hostnames.each do |hostname| %>
   <h3 id="hostname-<%= hostname.gsub(".", 'x') %>"><%= hostname %></h3>
   <% hostname_processes = Sidekiq::SmartKiller::History.processes(hostname) %>
+  <% sorted_processes = processes.to_a.select{|pro| pro['hostname'] == hostname}.sort_by{|pro| hostname_processes.dig(pro.identity, 'memory_in_mb') || -1 }.reverse %>
   <div class="table_container">
     <table class="processes table table-hover table-bordered table-striped table-white">
       <thead>
@@ -44,8 +45,7 @@
         <th><%= t('Busy') %></th>
         <th>&nbsp;</th>
       </thead>
-      <% processes.each do |process| %>
-        <% next unless process['hostname'] == hostname %>
+      <% sorted_processes.each do |process| %>
         <tr>
           <td class="box">
             <%= "#{process['hostname']}:#{process['pid']}" %>
