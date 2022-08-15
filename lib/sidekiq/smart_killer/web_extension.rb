@@ -20,6 +20,22 @@ module Sidekiq
           end
         end
 
+        app.post "/smart-killer/action" do
+          if params['identity']
+            p = Sidekiq::Process.new('identity' => params['identity'])
+            p.quiet! if params['quiet']
+            p.stop! if params['stop']
+          else
+            processes.each do |pro|
+              pro.quiet! if params['quiet']
+              pro.stop! if params['stop']
+            end
+          end
+
+          redirect "#{root_path}smart-killer"
+        end
+
+
       end
     end
   end
