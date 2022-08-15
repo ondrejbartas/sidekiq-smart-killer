@@ -17,7 +17,7 @@
 </div>
 
 <% Sidekiq::SmartKiller::History.hostnames.each do |hostname| %>
-  <h3 id="hostname-<%= hostname.gsub(".", 'x') %>"><%= hostname %></h3>
+  <h4><%= hostname %></h4>
   <div class="row chart">
     <div
       id="history"
@@ -29,7 +29,10 @@
     ></div>
     <div id="history-legend"></div>
   </div>
+<% end %>
 
+<% Sidekiq::SmartKiller::History.hostnames.each do |hostname| %>
+  <h3 id="hostname-<%= hostname.gsub(".", 'x') %>"><%= hostname %></h3>
   <% hostname_processes = Sidekiq::SmartKiller::History.processes(hostname) %>
   <div class="table_container">
     <table class="processes table table-hover table-bordered table-striped table-white">
@@ -180,7 +183,6 @@ var historyGraph = function(container) {
 }
 
 <% Sidekiq::SmartKiller::History.hostnames.each do |hostname| %>
-console.log(document.querySelector('.history-custom-<%= hostname.gsub(".", 'x') %>'))
   historyGraph(document.querySelector('.history-custom-<%= hostname.gsub(".", 'x') %>'))
 <% end %>
 </script>
