@@ -7,7 +7,7 @@ module Sidekiq
       COUNT = 24 * 60 / MINUTES_STEP
       def self.hostnames
         Sidekiq.redis do |conn|
-          conn.smembers("smart_killer:hostnames")
+          conn.smembers("smart_killer:hostnames").compact.sort
         end
       end
 
