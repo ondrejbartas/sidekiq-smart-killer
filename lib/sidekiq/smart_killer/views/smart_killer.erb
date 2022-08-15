@@ -9,8 +9,8 @@
     <% Sidekiq::SmartKiller::History.hostnames.each do |hostname| %>
       <tr>
         <td><a href="#hostname-<%= hostname.gsub('.', 'x') %>"><%= hostname %></a></td>
-        <td><%= Sidekiq::SmartKiller::History.mem_history(hostname, 1).values.last.try(:round, 2) %>% </td>
-        <td><%= Sidekiq::SmartKiller::History.cpu_history(hostname, 1).values.last.try(:round, 2) %>% </td>
+        <td><%= Sidekiq::SmartKiller::History.mem_history(hostname, 3).values.select { |c| c > 0 }.last.try(:round, 2) %>% </td>
+        <td><%= Sidekiq::SmartKiller::History.cpu_history(hostname, 3).values.select { |c| c > 0 }.last.try(:round, 2) %>% </td>
       </tr>
     <% end %>
   </table>
