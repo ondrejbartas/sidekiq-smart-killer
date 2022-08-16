@@ -43,7 +43,7 @@ module Sidekiq
           host_processes[pid] = {
             process: process,
             stats: stats_by_pid[pid.to_s],
-            memory_in_mb: stats_by_pid[pid.to_s]['RSS'].to_i / 1024
+            memory_in_mb: (stats_by_pid[pid.to_s] || {})['RSS'].to_i / 1024
           }
         end
 
