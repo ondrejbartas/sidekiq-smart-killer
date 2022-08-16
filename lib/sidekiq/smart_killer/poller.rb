@@ -5,6 +5,8 @@ require 'sidekiq/scheduled'
 module Sidekiq
   module SmartKiller
     POLL_INTERVAL = 30
+    STOP_JOB_WHEN_MEMORY_OVER = 900
+    MINIMUM_RUNNING_TIME = 30
 
     # The Poller checks host stats
     class Poller < Sidekiq::Scheduled::Poller
@@ -15,9 +17,9 @@ module Sidekiq
 
         Sidekiq.redis do |conn|
           if conn.set("smart_killer:getting_stats:#{hostname}", "started", ex: poll_interval_average - 10, nx: true)
-            #puts "Started process"
+            # puts "Started process"
           else
-            #puts "Already working"
+            # puts "Already working"
             return
           end
         end
@@ -43,6 +45,19 @@ module Sidekiq
             stats: stats_by_pid[pid.to_s],
             memory_in_mb: stats_by_pid[pid.to_s]['RSS'].to_i / 1024
           }
+        end
+
+        host_processes.
+          select { |pid, v|
+            v[:process]['busy'] == 0 &&
+              v[:memory_in_mb] > STOP_JOB_WHEN_MEMORY_OVER &&
+              v[:process]['started_at'] < MINIMUM_RUNNING_TIME.minutes.ago.to_i &&
+              empty_queues?(v[:process]['queues'])
+          }.each do |pid, v|
+
+          puts "Stopping job #{v[:process].identity} with used memory #{v[:memory_in_mb]}MB"
+          Sidekiq::Process.new('identity' => v[:process].identity).quiet!
+          Sidekiq::Process.new('identity' => v[:process].identity).stop!
         end
 
         nowdate = Time.now.utc.strftime("%Y-%m-%dT%H:%M:00")
@@ -80,6 +95,10 @@ module Sidekiq
       end
 
       private
+
+      def empty_queues?(queues)
+        queues.all? { |queue| Sidekiq::Queue.new(queue).size == 0 }
+      end
 
       def hostname
         @hostname ||= `hostname`.strip
