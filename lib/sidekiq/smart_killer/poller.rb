@@ -42,7 +42,7 @@ module Sidekiq
           pid = process['pid']
           host_processes[pid] = {
             process: process,
-            stats: stats_by_pid[pid.to_s],
+            stats: (stats_by_pid[pid.to_s] || {}),
             memory_in_mb: (stats_by_pid[pid.to_s] || {})['RSS'].to_i / 1024
           }
         end
@@ -74,7 +74,11 @@ module Sidekiq
 
             conn.del("smart_killer:#{hostname}:processes")
             host_processes.each do |pid, process|
-              conn.hset("smart_killer:#{hostname}:processes", process[:process].identity, {memory_in_mb: process[:memory_in_mb], memory_percent: process[:stats]['%MEM'].to_f, cpu_percent: process[:stats]['%CPU'].to_f}.to_json)
+              conn.hset(
+                "smart_killer:#{hostname}:processes",
+                process[:process].identity,
+                serialize_process(process)
+              )
             end
           end
         end
@@ -95,6 +99,20 @@ module Sidekiq
       end
 
       private
+
+      def serialize_process(process)
+        {
+          memory_in_mb: process[:memory_in_mb],
+          memory_percent: process[:stats]['%MEM'].to_f,
+          cpu_percent: process[:stats]['%CPU'].to_f
+        }.to_json
+      rescue StandardError => e
+        {
+          memory_in_mb: -1,
+          memory_percent: -1,
+          cpu_percent: -1,
+        }.to_json
+      end
 
       def empty_queues?(queues)
         queues.all? { |queue| Sidekiq::Queue.new(queue).size == 0 }
