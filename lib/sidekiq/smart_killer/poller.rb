@@ -5,7 +5,8 @@ require 'sidekiq/scheduled'
 module Sidekiq
   module SmartKiller
     POLL_INTERVAL = 30
-    STOP_JOB_WHEN_MEMORY_OVER = 900
+    STOP_JOB_WHEN_MEMORY_OVER = 2048
+    STOP_JOB_WHEN_MEMORY_OVER_ON_NOTHING_TO_DO = 900
     MINIMUM_RUNNING_TIME = 30
 
     # The Poller checks host stats
@@ -47,15 +48,30 @@ module Sidekiq
           }
         end
 
+        # kill process that has more than X ram and has no jobs
         host_processes.
           select { |pid, v|
             v[:process]['busy'] == 0 &&
-              v[:memory_in_mb] > STOP_JOB_WHEN_MEMORY_OVER &&
+              v[:process]['quiet'].to_s == 'false' &&
+              v[:memory_in_mb] > STOP_JOB_WHEN_MEMORY_OVER_ON_NOTHING_TO_DO &&
               v[:process]['started_at'] < MINIMUM_RUNNING_TIME.minutes.ago.to_i &&
               empty_queues?(v[:process]['queues'])
           }.each do |pid, v|
 
-          puts "Stopping job #{v[:process].identity} with used memory #{v[:memory_in_mb]}MB"
+          puts "Stopping job without nothing to do #{v[:process].identity} with used memory #{v[:memory_in_mb]}MB"
+          Sidekiq::Process.new('identity' => v[:process].identity).quiet!
+          Sidekiq::Process.new('identity' => v[:process].identity).stop!
+        end
+
+        # kill process that has more than X ram
+        host_processes.
+          select { |pid, v|
+            v[:process]['busy'] == 0 &&
+              v[:process]['quiet'].to_s == 'false' &&
+              v[:memory_in_mb] > STOP_JOB_WHEN_MEMORY_OVER
+          }.each do |pid, v|
+
+          puts "Stopping job with too much memory #{v[:process].identity} with used memory #{v[:memory_in_mb]}MB"
           Sidekiq::Process.new('identity' => v[:process].identity).quiet!
           Sidekiq::Process.new('identity' => v[:process].identity).stop!
         end
