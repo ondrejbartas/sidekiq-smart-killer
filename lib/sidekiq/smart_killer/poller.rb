@@ -66,8 +66,7 @@ module Sidekiq
         # kill process that has more than X ram
         host_processes.
           select { |pid, v|
-            v[:process]['busy'] == 0 &&
-              v[:process]['quiet'].to_s == 'false' &&
+            v[:process]['quiet'].to_s == 'false' &&
               v[:memory_in_mb] > STOP_JOB_WHEN_MEMORY_OVER
           }.each do |pid, v|
 
